@@ -9,7 +9,7 @@ Puppet::Type.newtype(:sysctl) do
     defaultto(:present)
   end
 
-  newparam(:value) do
+  newproperty(:value) do
     desc "The value to set the kernel tuning parameter to"
     isrequired
   end
