@@ -1,3 +1,5 @@
 #!/bin/bash
-# If this file exists it will be run on the system under test before puppet runs
-# to setup any prequisite test conditions, etc
+rm /sbin/sysctl
+ln -s /testcase/spec/mock/sysctl /sbin/sysctl
+rm /sbin/dracut
+ln -s /testcase/spec/mock/dracut /sbin/dracut

@@ -29,6 +29,11 @@ Puppet::Type.newtype(:sysctl) do
     defaultto(true)
   end
 
+  newparam(:rebuild_initrd_cmd) do
+    desc "Command to run to rebuild initrd (default is autodetect)"
+    defaultto("dracut -p -v")
+  end
+
   newparam(:name) do
     desc "The name of the kernel tuning parameter to set"
   end

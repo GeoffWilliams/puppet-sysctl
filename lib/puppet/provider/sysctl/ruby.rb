@@ -38,13 +38,17 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
     "/etc/sysctl.d/#{name}.conf"
   end
 
+  def get_filename(name)
+    self.class.get_filename(name)
+  end
+
   def to_file(name, value)
     "#{name}=#{value}"
   end
 
 
   def create()
-    #execute([command(:cmd), "-w", "#{@resource[:name]}=#{@resource[:value]}"])
+    execute([command(:cmd), "-w", "#{@resource[:name]}=#{@resource[:value]}"])
     File.open(self.get_filename(@resource[:name]), 'w') { |file| file.write(to_file(@resource[:name], @resource[:value])) }
 
     # https://access.redhat.com/solutions/2798411
@@ -53,11 +57,11 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
     end
 
     if @resource[:autoflush_ipv4] and @resource[:name] =~ /ipv4/
-      #execute([command(:cmd), "-w", "-w net.ipv4.route.flush=1"])
+      execute([command(:cmd), "-w", "net.ipv4.route.flush=1"])
     end
 
     if @resource[:autoflush_ipv6] and @resource[:name] =~ /ipv6/
-      #execute([command(:cmd), "-w", "-w net.ipv6.route.flush=1"])
+      execute([command(:cmd), "-w", "net.ipv6.route.flush=1"])
     end
   end
 
@@ -72,7 +76,7 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
 
 
   def self.instances
-      # for a systemctl setting to be "managed" we need an entry in a file and also
+    # for a systemctl setting to be "managed" we need an entry in a file and also
     # a matching directive
 
     active = {}
@@ -80,11 +84,14 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
     execute([command(:cmd), "-a" ]).to_s.split("\n").reject { |line|
       line =~ /^\s*$/ or line !~ /=/
     }.each { |line|
-      name = line.split('=')[0].strip
-      value = line.split('=')[1].strip
+      split = line.split('=')
+      if split.count == 2
+        name = split[0].strip
+        value = split[1].strip
 
-      if File.exist?(self.get_filename(name))
-        active[name] = value
+        if File.exist?(self.get_filename(name))
+          active[name] = value
+        end
       end
     }
 
@@ -96,21 +103,6 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
           })
     }
 
-    # returns a Puppet::Util::Execution::ProcessOutput which is a kinda magic
-    # string-like thing thats not really a string and is also a private API. for
-    # safety/sanity - convert into a real string for us to use it...
-    # sysctl_lines.to_s.split("\n").reject { |line|
-    #   (line =~ /^\s*$/ or line !~ /=/) and     File.exists?(get_filename(name))
-    #
-    # }.map { |line|
-    #   {
-    #       :name     => line.split('=')[0].strip,
-    #       :ensure   => :present,
-    #       :value    => "xxx",#line.split('=')[1].strip
-    #   }
-    # }.collect { |h|
-    #   new(h)
-    # }
 
   end
 
