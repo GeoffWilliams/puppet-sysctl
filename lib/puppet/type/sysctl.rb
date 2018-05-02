@@ -4,14 +4,19 @@ Puppet::Type.newtype(:sysctl) do
   @doc = "Manage sysctl parameter with Puppet"
 
   ensurable do
-    desc "Ensure the kernel tuning parameter"
     defaultvalues
+
+    desc "Ensure the kernel tuning parameter"
     defaultto(:present)
   end
 
   newproperty(:value) do
     desc "The value to set the kernel tuning parameter to"
     isrequired
+  end
+
+  newproperty(:defined_in) do
+    desc "File containing this settings definition"
   end
 
   newparam(:autoflush_ipv4) do
@@ -31,11 +36,25 @@ Puppet::Type.newtype(:sysctl) do
 
   newparam(:rebuild_initrd_cmd) do
     desc "Command to run to rebuild initrd (default is autodetect)"
-    defaultto("dracut -p -v")
+    defaultto("dracut -v -f")
   end
 
   newparam(:name) do
     desc "The name of the kernel tuning parameter to set"
+  end
+
+  # see "title patterns" - https://www.craigdunn.org/2016/07/composite-namevars-in-puppet/
+  def self.title_patterns
+    [
+        # just a regular title (no '=') - assign it to the name field
+        [ /(^([^\=]*)$)/m,
+          [ [:name] ] ],
+
+        # Title is in form key=value - assign LHS of = to name, RHS to value
+        [ /^([^=]+)=(.*)$/,
+          [ [:name], [:value] ]
+        ]
+    ]
   end
 
 end
