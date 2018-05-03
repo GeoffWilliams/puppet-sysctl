@@ -83,12 +83,17 @@ module</a></p>
 
 <h2 id="label-Description">Description</h2>
 
-<p>Manage sysctl kernel tuning with Puppet. This is a native type and provider
-that scans the contents of <code>/etc/sysctl.d</code>.</p>
+<p>Manage sysctl kernel tuning with Puppet.</p>
 
-<p>The module has its own naming convention for files in this directory:</p>
+<p>This is a native type and provider that scans the contents of
+<code>/etc/sysctl.d</code> (and thus <code>/etc/sysctl.conf</code> due) to
+the symlink <code>99-sysctl.conf</code>.</p>
+
+<p>The module has its own naming convention for files in
+<code>/etc/sysctl.d</code>:</p>
 <ul><li>
-<p>Name of setting used as filename, eg
+<p>Prefix files managed by puppet with <code>80-puppet-</code> and then name
+of setting used as filename, eg
 <code>net.ipv4.conf.all.accept_source_route</code> will be saved as
 <code>/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf</code></p>
 </li><li>

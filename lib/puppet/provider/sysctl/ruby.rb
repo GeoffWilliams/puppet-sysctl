@@ -27,6 +27,7 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
 
   def exists?
     @property_hash[:ensure] == :present
+    #and @property_hash[:value] == @property_hash[:value_saved]
   end
 
 
@@ -96,9 +97,9 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
     # a matching directive
 
     active = {}
-    sysctl_keys = []
+    sysctl_values = {}
 
-    # corresponding entries from sysctl -a (ensure=> present)
+    # corresponding entries from sysctl -a that are managed by puppet
     execute([command(:cmd), "-a" ]).to_s.split("\n").reject { |line|
       line =~ /^\s*$/ or line !~ /=/
     }.each { |line|
@@ -106,20 +107,27 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
       if split.count == 2
         name = split[0].strip
         value = split[1].strip
-        sysctl_keys << name
+        sysctl_values[name] = value
 
         file = self.get_filename(name)
         if File.exist?(file)
-          active[name] = {:ensure => :present, :value => value, :defined_in => file}
+          s = File.read(file).split("=")
+          value_saved =
+              if s.count == 2
+                s[1].strip.gsub(/\n/,"")
+              else
+                nil
+              end
+
+          active[name] = {:ensure => :present, :value => value, :value_saved => value_saved, :defined_in => file}
         end
       end
     }
 
-    # items found in u
+    # entries from sysctl -a found in /etc/sysctl.d/*.conf that are NOT managed by puppet
     Dir.glob("/etc/sysctl.d/*.conf").reject { |file|
       # reject our own files. There is a link 99-sysctl.conf -> /etc/sysctl.conf so we are scanning that too
-      sysctl_keys.include?(File.basename(file).gsub(/.conf$/,""))
-
+      file =~ /#{PUPPET_PREFIX}/
     }.each { |file|
       File.readlines(file).reject {|line|
         # skip entirely whitespace or comment lines
@@ -128,9 +136,9 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
         split = line.split("=")
         if split.count == 2
           key = split[0].strip
-          value = split[1].strip
+          value_saved = split[1].strip
 
-          active[key] = {:ensure => :present, :value => value, :defined_in => file}
+          active[key] = {:ensure => :present, :value => sysctl_values[key], :value_saved => value_saved, :defined_in => file}
         end
 
       }
@@ -141,10 +149,10 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
           :name => k,
           :ensure => v[:ensure],
           :value => v[:value],
+          :value_saved => v[:value_saved],
           :defined_in => v[:defined_in]
           })
     }
-
 
   end
 
