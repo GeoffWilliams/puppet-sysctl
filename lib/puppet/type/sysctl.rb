@@ -3,12 +3,7 @@ require 'puppet/parameter/boolean'
 Puppet::Type.newtype(:sysctl) do
   @doc = "Manage sysctl parameter with Puppet"
 
-  ensurable do
-    defaultvalues
-
-    desc "Ensure the kernel tuning parameter"
-    defaultto(:present)
-  end
+  ensurable
 
   newproperty(:value) do
     desc "The value to set the kernel tuning parameter to"

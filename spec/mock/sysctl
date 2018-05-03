@@ -1000,6 +1000,7 @@ vm.user_reserve_kbytes = 131072
 vm.vfs_cache_pressure = 100
 vm.watermark_scale_factor = 10
 vm.zone_reclaim_mode = 0
+bogus.mismatch.value = 666
 """
 
 
@@ -1012,11 +1013,15 @@ if args.a:
 elif args.w:
     key=args.w.split('=')[0]
     value=args.w.split('=')[1]
-    print "saving %s --> %s" % (key, value)
-    with open('/tmp/' + key + '.conf', "w") as f:
-        f.write("%s -> %s" % (key, value))
+    if key == "net.ipv4.route.flush":
+        with open('/tmp/testcase/flush_ipv4', 'w') as f:
+            f.write("flushed")
+    elif key == "net.ipv6.route.flush":
+        with open('/tmp/testcase/flush_ipv6', 'w') as f:
+            f.write("flushed")
+    else:
+        print "saving %s --> %s" % (key, value)
+        with open('/tmp/testcase/' + key + '.conf', "w") as f:
+            f.write("%s=%s" % (key, value))
 else:
     print "error - invalid command line for mock sysctl"
-
-
-

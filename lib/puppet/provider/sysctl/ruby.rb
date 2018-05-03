@@ -3,6 +3,8 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
 
   commands :cmd => "sysctl"
 
+  PUPPET_PREFIX = "80-puppet-"
+
   def self.prefetch(resources)
     instances.each do |prov|
       if resource = resources[prov.name]
@@ -34,7 +36,7 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
 
 
   def self.get_filename(name)
-    "/etc/sysctl.d/#{name}.conf"
+    "/etc/sysctl.d/#{PUPPET_PREFIX}#{name}.conf"
   end
 
   def get_filename(name)
@@ -74,7 +76,12 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
     defined_in = @property_hash[:defined_in]
     defined_in_nouse = "#{defined_in}.nouse"
     if File.exist?(defined_in)
-      FileUtils.mv(defined_in, defined_in_nouse, force: true)
+      if File.basename(defined_in) =~ /^#{PUPPET_PREFIX}/
+        # managed by puppet already - delete
+        File.unlink(defined_in)
+      else
+        FileUtils.mv(defined_in, defined_in_nouse, force: true)
+      end
     end
 
     # Requires user action so its a warning...
