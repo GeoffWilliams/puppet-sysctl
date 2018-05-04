@@ -22,31 +22,26 @@ This is a native type and provider that scans for known `sysctl` settings in all
 
 The module has its own naming convention for files in `/etc/sysctl.d`:
 
-*   Prefix files managed by puppet with `80-puppet-` and then name of
-    setting used as filename, eg `net.ipv4.conf.all.accept_source_route`
-    will be saved as `/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf`
+*   Prefix files managed by puppet with `80-puppet-` and then name of setting used as filename, eg 
+    `net.ipv4.conf.all.accept_source_route` will be saved as 
+    `/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf`
 *   One setting per file, in regular `sysctl` format, eg:
     ```
     net.ipv4.conf.all.accept_source_route=0
-    ```
-*   Files obeying the above convention are `ensure=>present`
-*   All other files in the directory will be scanned for entries and any found
-    will be `ensure=>absent` since puppet isn't managing them yet
-    they are being explicitly set
+    ```    
 
 ## Features
 
-* Scans `/etc/sysctl.d/*.conf` for rules
+* Scans system directories for for rules (see sysctl precedence)
 * Runs `sysctl -w` when a rule is added
-* Flushes IPv4 and IPv6 rules when a rule matching `/ipv4/` or `/ipv6/` is updated (optional)
-* Rebuild the initrd when any rules updated (optional)
+* Flushes IPv4 and IPv6 rules when a rule matching `/ipv4/` or `/ipv6/` is updated (can be disabled)
+* Rebuild the initrd when any rules updated (can be disabled)
 * Supports resource purging for unmanaged rules
 * Files created by puppet prefixed `80-puppet-` for identification
 
 
 ## Puppet resource implementation
-It's possible to enumerate the list of current settings using
-`puppet resource sysctl` which will give output like this:
+It's possible to enumerate the list of current settings using `puppet resource sysctl` which will give output like this:
 
 ```puppet
 sysctl { 'net.ipv4.conf.all.accept_source_route':
@@ -60,8 +55,8 @@ sysctl { 'net.ipv4.conf.all.accept_source_route':
 In this case:
 *   `net.ipv4.conf.all.accept_source_route` is the setting being managed
 *   There is some form of non-default setting in place (`ensure=>present`)
-*   The settting is defined in `/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf`
-    and because this file starts `80-puppet-` the module _owns_ the setting
+*   The setting is defined in `/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf` and because this file
+    starts `80-puppet-` the module _owns_ the setting
 *   `defined_in` lists _all_ `.conf` file defining the setting (see sysctl precedence)
 *   `value` represents the active value on the system, obtained from  running `sysctl net.ipv4.conf.all.accept_source_route`
 *   `valued_saved` represents the current _winning_ value saved in `.conf` files (see sysctl precedence)
@@ -75,7 +70,7 @@ sysctl { 'net.ipv4.igmp_qrv':
 }
 ```
 
-The module also manages changes made in files created by the user which  will have names that don't match the 80-puppet-
+The module also manages changes made in files created by the user which  will have names that don't match the `80-puppet-`
 naming convention. When the module is commanded to take ownership of such settings, the existing file will be renamed 
 rather then deleted, eg:
 
@@ -103,7 +98,8 @@ accordance with the above list.
 
 The module keeps track of settings that occur in any of the above files in the `defined_in` property. If asked to manage
 a setting that is already defined and not managed by the module Puppet will disable all existing `.conf` files 
-containing the offending definition by appending `.nouse` to the filename.
+containing the offending definition by appending `.nouse` to the filename and will then create a new file obeying the 
+`80-puppet-` naming convention if `ensure=>present`.
 
 ## Value handling
 It's possible for `value` to differ from `value_saved` and this would indicate that `sysctl -w` was run at some point 
