@@ -17,8 +17,8 @@
 
 Manage sysctl kernel tuning with Puppet.
 
-This is a native type and provider that scans the contents of `/etc/sysctl.d` (and thus `/etc/sysctl.conf`
-due) to the symlink `99-sysctl.conf`.
+This is a native type and provider that scans for known `sysctl` settings in all directories the command scans 
+(see sysctl precedence).
 
 The module has its own naming convention for files in `/etc/sysctl.d`:
 
