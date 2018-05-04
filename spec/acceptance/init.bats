@@ -15,6 +15,10 @@
   grep 'net.ipv4.conf.all.accept_source_route=0' /tmp/testcase/net.ipv4.conf.all.accept_source_route.conf
 }
 
+@test "default setting made explict and saved to file" {
+  grep "net.ipv4.ip_default_ttl=64" /etc/sysctl.d/80-puppet-net.ipv4.ip_default_ttl.conf
+}
+
 
 @test "initrd was rebuilt" {
   ls /tmp/testcase/dracut_executed

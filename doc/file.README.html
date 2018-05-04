@@ -107,30 +107,6 @@ will be <code>ensure=&gt;absent</code> since puppet isn&#39;t managing them
 yet they are being explicitly set</p>
 </li></ul>
 
-<p>It&#39;s possible to enumerate the list of current settings using
-<code>puppet resource sysctl</code> which will give output like this:</p>
-
-<pre class="code ruby"><code class="ruby">sysctl { &#39;net.ipv4.conf.all.accept_source_route&#39;:
-  ensure     =&gt; &#39;present&#39;,
-  defined_in =&gt; &#39;/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf&#39;,
-  value      =&gt; &#39;0&#39;,
-}
-sysctl { &#39;net.netfilter.nf_conntrack_max&#39;:
-  ensure     =&gt; &#39;present&#39;,
-  defined_in =&gt; &#39;/etc/sysctl.d/myrules.conf&#39;,
-  value      =&gt; &#39;65536&#39;,
-}
-</code></pre>
-
-<p>In this case the module is managing
-<code>net.ipv4.conf.all.accept_source_route</code> but not
-<code>net.netfilter.nf_conntrack_max</code> which is managed in a user
-created file <code>/etc/sysctl.d/myrules.conf</code>. If we decide to take
-ownership of this rule (<code>ensure=&gt;present</code>) then the file
-defining the old setting will be renamed <code>.conf</code> to
-<code>.conf.nouse</code>. This disables the file without deleting it which
-is useful since user defined files can hold more then one setting.</p>
-
 <h2 id="label-Features">Features</h2>
 <ul><li>
 <p>Scans <code>/etc/sysctl.d/*.conf</code> for rules</p>
@@ -146,6 +122,80 @@ is useful since user defined files can hold more then one setting.</p>
 </li><li>
 <p>Files created by puppet prefixed <code>80-puppet-</code> for identification</p>
 </li></ul>
+
+<h2 id="label-Puppet+resource+implementation">Puppet resource implementation</h2>
+
+<p>It&#39;s possible to enumerate the list of current settings using
+<code>puppet resource sysctl</code> which will give output like this:</p>
+
+<pre class="code ruby"><code class="ruby">sysctl { &#39;net.ipv4.conf.all.accept_source_route&#39;:
+  ensure      =&gt; &#39;present&#39;,
+  defined_in  =&gt; &#39;/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf&#39;,
+  value       =&gt; &#39;0&#39;,
+  value_saved =&gt; &#39;0&#39;,
+}
+</code></pre>
+
+<p>In this case: * <code>net.ipv4.conf.all.accept_source_route</code> is the
+setting being managed * There is some form of non-default setting in place
+(<code>ensure=&gt;present</code>) * The settting is defined in
+<code>/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf</code>
+because this file starts <code>80-puppet-</code> the module <em>owns</em>
+the setting * The value from running <code>sysctl
+net.ipv4.conf.all.accept_source_route</code> is <code>0</code> * The value
+saved in the file at <code>defined_in</code> is also <code>0</code></p>
+
+<pre class="code ruby"><code class="ruby">sysctl { &#39;net.ipv4.igmp_qrv&#39;:
+  ensure      =&gt; &#39;present&#39;,
+  defined_in  =&gt; &#39;/etc/sysctl.d/megacorp_settings.conf&#39;,
+  value       =&gt; &#39;2&#39;,
+  value_saved =&gt; &#39;2&#39;,
+}
+</code></pre>
+
+<p>The module also detects changes made in files created by the user. These
+will have names that don&#39;t match the 80-puppet- naming convention.
+Where the module is commanded to take ownership of such settings, the
+existing file will be renamed rather then deleted, eg:</p>
+
+<pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv4.igmp_qrv=2&quot;: }
+</code></pre>
+
+<p>Would result in setting being saved to
+<code>80-puppet-net.ipv4.igmp_qrv.conf</code> while
+<code>megacorp_settings.conf</code> would be moved to
+<code>megacorp_settings.conf.nouse</code>.</p>
+
+<h2 id="label-File+precedence">File precedence</h2>
+
+<p>According to <code>man sysctl</code>, Several patterns of files are
+processed with the last definition <em>winning</em>:</p>
+
+<pre class="code ruby"><code class="ruby">/run/sysctl.d/*.conf
+/etc/sysctl.d/*.conf
+/usr/local/lib/sysctl.d/*.conf
+/usr/lib/sysctl.d/*.conf
+/lib/sysctl.d/*.conf
+/etc/sysctl.conf
+</code></pre>
+
+<p>Despite the symlink <code>/etc/sysctl.d/99-sysctl.conf</code> existing,
+<code>/etc/sysctl.conf</code> is still processed separately and in
+accordance with the above list.</p>
+
+<p>Finally, the file at <code>/etc/sysctl.conf</code> is also handled by the
+module - to a degree. My understanding is that<code>/etc/sy</code></p>
+
+<p>It&#39;s possible for <code>value</code> to differ from
+<code>value_saved</code> and this would indicate that <code>sysctl
+-w</code> was run at some point after the sysctl rules  were processed.</p>
+
+<p><code>net.netfilter.nf_conntrack_max</code> which is managed in a user
+created file <code>/etc/sysctl.d/myrules.conf</code>. If we decide to take
+ownership of this rule (<code>ensure=&gt;present</code>) then the file
+defining the old setting will be renamed <code>.conf</code> to
+<code>.conf.nouse</code>. This disables the file without deleting it which
+is useful since user defined files can hold more then one setting.</p>
 
 <h2 id="label-Usage">Usage</h2>
 
