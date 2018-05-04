@@ -5,6 +5,9 @@
 
 1. [Description](#description)
 1. [Features](#features)
+1. [Puppet resource implementation](#puppet-resource-implementation)
+1. [sysctl precedence](#sysctl-precedence)
+1. [Value handling](#value-handling)
 1. [Usage - Configuration options and additional functionality](#usage)
 1. [Reference - An under-the-hood peek at what the module is doing and how](#reference)
 1. [Limitations - OS compatibility, etc.](#limitations)
@@ -48,7 +51,7 @@ It's possible to enumerate the list of current settings using
 ```puppet
 sysctl { 'net.ipv4.conf.all.accept_source_route':
   ensure      => 'present',
-  defined_in  => '/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf',
+  defined_in  => ['/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf'],
   value       => '0',
   value_saved => '0',
 }
@@ -58,34 +61,33 @@ In this case:
 *   `net.ipv4.conf.all.accept_source_route` is the setting being managed
 *   There is some form of non-default setting in place (`ensure=>present`)
 *   The settting is defined in `/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf`
-    because this file starts `80-puppet-` the module _owns_ the setting
-*   The value from running `sysctl net.ipv4.conf.all.accept_source_route` is `0`
-*   The value saved in the file at `defined_in` is also `0`
+    and because this file starts `80-puppet-` the module _owns_ the setting
+*   `defined_in` lists _all_ `.conf` file defining the setting (see sysctl precedence)
+*   `value` represents the active value on the system, obtained from  running `sysctl net.ipv4.conf.all.accept_source_route`
+*   `valued_saved` represents the current _winning_ value saved in `.conf` files (see sysctl precedence)
 
 ```puppet
 sysctl { 'net.ipv4.igmp_qrv':
   ensure      => 'present',
-  defined_in  => '/etc/sysctl.d/megacorp_settings.conf',
+  defined_in  => ['/etc/sysctl.d/megacorp_settings.conf'],
   value       => '2',
   value_saved => '2',
 }
 ```
 
-The module also detects changes made in files created by the user. These
-will have names that don't match the 80-puppet- naming convention. Where
-the module is commanded to take ownership of such settings, the existing
-file will be renamed rather then deleted, eg:
+The module also manages changes made in files created by the user which  will have names that don't match the 80-puppet-
+naming convention. When the module is commanded to take ownership of such settings, the existing file will be renamed 
+rather then deleted, eg:
 
 ```puppet
 sysctl { "net.ipv4.igmp_qrv=2": }
 ```
 
-Would result in setting being saved to `80-puppet-net.ipv4.igmp_qrv.conf`
-while `megacorp_settings.conf` would be moved to `megacorp_settings.conf.nouse`.
+Would result in setting being saved to `80-puppet-net.ipv4.igmp_qrv.conf` while `megacorp_settings.conf` would be moved
+to `megacorp_settings.conf.nouse`.
 
-## File precedence
-According to `man sysctl`, Several patterns of files are processed with the last
-definition _winning_:
+## sysctl precedence
+According to `man sysctl`, Several patterns of files are processed with the last definition _winning_:
 
 ```
 /run/sysctl.d/*.conf
@@ -96,22 +98,18 @@ definition _winning_:
 /etc/sysctl.conf
 ```
 
-Despite the symlink `/etc/sysctl.d/99-sysctl.conf` existing, `/etc/sysctl.conf`
-is still processed separately and in accordance with the above list.
+Despite the symlink `/etc/sysctl.d/99-sysctl.conf` existing, `/etc/sysctl.conf` is still processed separately and in 
+accordance with the above list.
 
-Finally, the file at `/etc/sysctl.conf` is also handled by the module - to a
-degree. My understanding is that`/etc/sy`
+The module keeps track of settings that occur in any of the above files in the `defined_in` property. If asked to manage
+a setting that is already defined and not managed by the module Puppet will disable all existing `.conf` files 
+containing the offending definition by appending `.nouse` to the filename.
 
-It's possible for `value` to differ from `value_saved` and this would
-indicate that `sysctl -w` was run at some point after the sysctl rules
- were processed.
+## Value handling
+It's possible for `value` to differ from `value_saved` and this would indicate that `sysctl -w` was run at some point 
+after the sysctl rules were processed.
 
-`net.netfilter.nf_conntrack_max` which is managed in a user created file
-`/etc/sysctl.d/myrules.conf`. If we decide to take ownership of this rule
-(`ensure=>present`) then the file defining the old setting will be renamed
-`.conf` to `.conf.nouse`. This disables the file without deleting it which
-is useful since user defined files can hold more then one setting.
-
+Puppet detects when `value != value_saved` and will sync the resource on detection.
 
 
 ## Usage
@@ -138,8 +136,8 @@ sysctl { "net.ipv4.conf.all.accept_source_route=0":
 }
 ```
 
-* Functionally equivalent to long form
-* Title must match `key=value`
+* Functionally equivalent to long form but handly shortened syntax using only `title`
+* `title` must match `key=value`
 
 ### Resource purging
 
@@ -153,11 +151,13 @@ sysctl { "net.ipv4.conf.all.accept_source_route":
 }
 ```
 
-Puppet will purge all unmanaged settings from `/etc/sysctl.d`:
+Puppet will purge all unmanaged settings from all scanned file patterns (see sysctl precedence):
+* Only valid settings can be purged (visible in `sysctl -a`)
 * Existing puppet managed files will be removed
 * Existing non-puppet managed files will be renamed
 * Only the sysctl settings in the catalog will continue to exist
 * You must _reboot_ to restore default settings
+* Only sysctl rules managed by puppet will exist if this technique is used
 
 ### Stop managing a setting
 
@@ -167,13 +167,41 @@ sysctl { "net.ipv4.conf.all.accept_source_route":
 }
 
 ```
+* Removes the `.conf` file from `/etc/sysctl.d`
+* initrd will be rebuilt
+* You must _reboot_ to restore default settings
 
 ### Don't flush IPv4 on rule change (per resource)
-
+```puppet
+sysctl { "net.ipv4.conf.all.accept_source_route=1":
+  autoflush_ipv4 => false,
+}
+```
+* To avoid flushing the IPv4 rules for _this_ resource, set `autoflush_ipv4` false
 
 ### Don't flush IPv6 on rule change (per resource)
+```puppet
+sysctl { "net.ipv6.conf.default.disable_ipv6=1":
+  autoflush_ipv6 => false,
+}
+```
+* To avoid flushing the IPv6 rules for _this_ resource, set `autoflush_ipv6` false
+
 ### Don't rebuild initrd on rule change (per resource)
+```puppet
+sysctl { "net.ipv6.conf.default.disable_ipv6=1":
+  rebuild_initrd => false,
+}
+```
+* To avoid rebuilding initrd with `dracut` for _this_ resource, set `rebuild_initrd` false 
+
 ### Use an alternate command to rebuild initrd
+```puppet
+sysctl { "net.ipv6.conf.default.disable_ipv6=1":
+  rebuild_initrd_cmd => "/bin/echo custom > /tmp/testcase/initrd_cmd",
+}
+```
+* Run any command you like to rebuild the initrd for _this_ resource. This should allow multi-OS support
 
 
 ## Reference
@@ -186,7 +214,8 @@ bundle exec puppet strings
 ```
 
 ## Limitations
-* Not supported by Puppet, Inc.
+*   Tested on RHEL/CentOS 7 so far. You might be able to support other systems by passing the appropriate command to 
+    rebuild initrd on your platform
 
 ## Development
 

@@ -69,6 +69,13 @@ src="https://travis-ci.org/GeoffWilliams/puppet-sysctl.svg?branch=master"></a></
 </li><li>
 <p><a href="#label-Features">Features</a></p>
 </li><li>
+<p><a href="#label-Puppet+resource+implementation">Puppet resource
+implementation</a></p>
+</li><li>
+<p><a href="#label-Sysctl+precedence">sysctl precedence</a></p>
+</li><li>
+<p><a href="#label-Value+handling">Value handling</a></p>
+</li><li>
 <p><a href="#label-Usage">Usage - Configuration options and additional
 functionality</a></p>
 </li><li>
@@ -130,7 +137,7 @@ yet they are being explicitly set</p>
 
 <pre class="code ruby"><code class="ruby">sysctl { &#39;net.ipv4.conf.all.accept_source_route&#39;:
   ensure      =&gt; &#39;present&#39;,
-  defined_in  =&gt; &#39;/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf&#39;,
+  defined_in  =&gt; [&#39;/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf&#39;],
   value       =&gt; &#39;0&#39;,
   value_saved =&gt; &#39;0&#39;,
 }
@@ -140,23 +147,26 @@ yet they are being explicitly set</p>
 setting being managed * There is some form of non-default setting in place
 (<code>ensure=&gt;present</code>) * The settting is defined in
 <code>/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf</code>
-because this file starts <code>80-puppet-</code> the module <em>owns</em>
-the setting * The value from running <code>sysctl
-net.ipv4.conf.all.accept_source_route</code> is <code>0</code> * The value
-saved in the file at <code>defined_in</code> is also <code>0</code></p>
+and because this file starts <code>80-puppet-</code> the module
+<em>owns</em> the setting * <code>defined_in</code> lists <em>all</em>
+<code>.conf</code> file defining the setting (see sysctl precedence) *
+<code>value</code> represents the active value on the system, obtained from
+running <code>sysctl net.ipv4.conf.all.accept_source_route</code> *
+<code>valued_saved</code> represents the current <em>winning</em> value
+saved in <code>.conf</code> files (see sysctl precedence)</p>
 
 <pre class="code ruby"><code class="ruby">sysctl { &#39;net.ipv4.igmp_qrv&#39;:
   ensure      =&gt; &#39;present&#39;,
-  defined_in  =&gt; &#39;/etc/sysctl.d/megacorp_settings.conf&#39;,
+  defined_in  =&gt; [&#39;/etc/sysctl.d/megacorp_settings.conf&#39;],
   value       =&gt; &#39;2&#39;,
   value_saved =&gt; &#39;2&#39;,
 }
 </code></pre>
 
-<p>The module also detects changes made in files created by the user. These
-will have names that don&#39;t match the 80-puppet- naming convention.
-Where the module is commanded to take ownership of such settings, the
-existing file will be renamed rather then deleted, eg:</p>
+<p>The module also manages changes made in files created by the user which
+will have names that don&#39;t match the 80-puppet- naming convention. When
+the module is commanded to take ownership of such settings, the existing
+file will be renamed rather then deleted, eg:</p>
 
 <pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv4.igmp_qrv=2&quot;: }
 </code></pre>
@@ -166,7 +176,7 @@ existing file will be renamed rather then deleted, eg:</p>
 <code>megacorp_settings.conf</code> would be moved to
 <code>megacorp_settings.conf.nouse</code>.</p>
 
-<h2 id="label-File+precedence">File precedence</h2>
+<h2 id="label-sysctl+precedence">sysctl precedence</h2>
 
 <p>According to <code>man sysctl</code>, Several patterns of files are
 processed with the last definition <em>winning</em>:</p>
@@ -183,19 +193,20 @@ processed with the last definition <em>winning</em>:</p>
 <code>/etc/sysctl.conf</code> is still processed separately and in
 accordance with the above list.</p>
 
-<p>Finally, the file at <code>/etc/sysctl.conf</code> is also handled by the
-module - to a degree. My understanding is that<code>/etc/sy</code></p>
+<p>The module keeps track of settings that occur in any of the above files in
+the <code>defined_in</code> property. If asked to manage a setting that is
+already defined and not managed by the module Puppet will disable all
+existing <code>.conf</code> files containing the offending definition by
+appending <code>.nouse</code> to the filename.</p>
+
+<h2 id="label-Value+handling">Value handling</h2>
 
 <p>It&#39;s possible for <code>value</code> to differ from
 <code>value_saved</code> and this would indicate that <code>sysctl
--w</code> was run at some point after the sysctl rules  were processed.</p>
+-w</code> was run at some point after the sysctl rules were processed.</p>
 
-<p><code>net.netfilter.nf_conntrack_max</code> which is managed in a user
-created file <code>/etc/sysctl.d/myrules.conf</code>. If we decide to take
-ownership of this rule (<code>ensure=&gt;present</code>) then the file
-defining the old setting will be renamed <code>.conf</code> to
-<code>.conf.nouse</code>. This disables the file without deleting it which
-is useful since user defined files can hold more then one setting.</p>
+<p>Puppet detects when <code>value != value_saved</code> and will sync the
+resource on detection.</p>
 
 <h2 id="label-Usage">Usage</h2>
 
@@ -225,9 +236,10 @@ on boot</p>
 }
 </code></pre>
 <ul><li>
-<p>Functionally equivalent to long form</p>
+<p>Functionally equivalent to long form but handly shortened syntax using only
+<code>title</code></p>
 </li><li>
-<p>Title must match <code>key=value</code></p>
+<p><code>title</code> must match <code>key=value</code></p>
 </li></ul>
 
 <h3 id="label-Resource+purging">Resource purging</h3>
@@ -241,10 +253,13 @@ sysctl { &quot;net.ipv4.conf.all.accept_source_route&quot;:
 }
 </code></pre>
 
-<p>Puppet will purge all unmanaged settings from <code>/etc/sysctl.d</code>: *
-Existing puppet managed files will be removed * Existing non-puppet managed
-files will be renamed * Only the sysctl settings in the catalog will
-continue to exist * You must <em>reboot</em> to restore default settings</p>
+<p>Puppet will purge all unmanaged settings from all scanned file patterns
+(see sysctl precedence): * Only valid settings can be purged (visible in
+<code>sysctl -a</code>) * Existing puppet managed files will be removed *
+Existing non-puppet managed files will be renamed * Only the sysctl
+settings in the catalog will continue to exist * You must <em>reboot</em>
+to restore default settings * Only sysctl rules managed by puppet will
+exist if this technique is used</p>
 
 <h3 id="label-Stop+managing+a+setting">Stop managing a setting</h3>
 
@@ -252,14 +267,57 @@ continue to exist * You must <em>reboot</em> to restore default settings</p>
   ensure =&gt; absent,
 }
 </code></pre>
+<ul><li>
+<p>Removes the <code>.conf</code> file from <code>/etc/sysctl.d</code></p>
+</li><li>
+<p>initrd will be rebuilt</p>
+</li><li>
+<p>You must <em>reboot</em> to restore default settings</p>
+</li></ul>
 
 <h3 id="label-Don-27t+flush+IPv4+on+rule+change+-28per+resource-29">Don&#39;t flush IPv4 on rule change (per resource)</h3>
 
+<pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv4.conf.all.accept_source_route=1&quot;:
+  autoflush_ipv4 =&gt; false,
+}
+</code></pre>
+<ul><li>
+<p>To avoid flushing the IPv4 rules for <em>this</em> resource, set
+<code>autoflush_ipv4</code> false</p>
+</li></ul>
+
 <h3 id="label-Don-27t+flush+IPv6+on+rule+change+-28per+resource-29">Don&#39;t flush IPv6 on rule change (per resource)</h3>
+
+<pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv6.conf.default.disable_ipv6=1&quot;:
+  autoflush_ipv6 =&gt; false,
+}
+</code></pre>
+<ul><li>
+<p>To avoid flushing the IPv6 rules for <em>this</em> resource, set
+<code>autoflush_ipv6</code> false</p>
+</li></ul>
 
 <h3 id="label-Don-27t+rebuild+initrd+on+rule+change+-28per+resource-29">Don&#39;t rebuild initrd on rule change (per resource)</h3>
 
+<pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv6.conf.default.disable_ipv6=1&quot;:
+  rebuild_initrd =&gt; false,
+}
+</code></pre>
+<ul><li>
+<p>To avoid rebuilding initrd with <code>dracut</code> for <em>this</em>
+resource, set <code>rebuild_initrd</code> false</p>
+</li></ul>
+
 <h3 id="label-Use+an+alternate+command+to+rebuild+initrd">Use an alternate command to rebuild initrd</h3>
+
+<pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv6.conf.default.disable_ipv6=1&quot;:
+  rebuild_initrd_cmd =&gt; &quot;/bin/echo custom &gt; /tmp/testcase/initrd_cmd&quot;,
+}
+</code></pre>
+<ul><li>
+<p>Run any command you like to rebuild the initrd for <em>this</em> resource.
+This should allow multi-OS support</p>
+</li></ul>
 
 <h2 id="label-Reference">Reference</h2>
 
@@ -276,7 +334,8 @@ may regenerate the documentation by running:</p>
 
 <h2 id="label-Limitations">Limitations</h2>
 <ul><li>
-<p>Not supported by Puppet, Inc.</p>
+<p>Tested on RHEL/CentOS 7 so far. You might be able to support other systems
+by passing the appropriate command to rebuild initrd on your platform</p>
 </li></ul>
 
 <h2 id="label-Development">Development</h2>
