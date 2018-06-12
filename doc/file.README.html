@@ -92,9 +92,8 @@ module</a></p>
 
 <p>Manage sysctl kernel tuning with Puppet.</p>
 
-<p>This is a native type and provider that scans the contents of
-<code>/etc/sysctl.d</code> (and thus <code>/etc/sysctl.conf</code> due) to
-the symlink <code>99-sysctl.conf</code>.</p>
+<p>This is a native type and provider that scans for known <code>sysctl</code>
+settings in all directories the command scans (see sysctl precedence).</p>
 
 <p>The module has its own naming convention for files in
 <code>/etc/sysctl.d</code>:</p>
@@ -106,24 +105,18 @@ of setting used as filename, eg
 </li><li>
 <p>One setting per file, in regular <code>sysctl</code> format, eg: <code>
 net.ipv4.conf.all.accept_source_route=0 </code></p>
-</li><li>
-<p>Files obeying the above convention are <code>ensure=&gt;present</code></p>
-</li><li>
-<p>All other files in the directory will be scanned for entries and any found
-will be <code>ensure=&gt;absent</code> since puppet isn&#39;t managing them
-yet they are being explicitly set</p>
 </li></ul>
 
 <h2 id="label-Features">Features</h2>
 <ul><li>
-<p>Scans <code>/etc/sysctl.d/*.conf</code> for rules</p>
+<p>Scans system directories for for rules (see sysctl precedence)</p>
 </li><li>
 <p>Runs <code>sysctl -w</code> when a rule is added</p>
 </li><li>
 <p>Flushes IPv4 and IPv6 rules when a rule matching <code>/ipv4/</code> or
-<code>/ipv6/</code> is updated (optional)</p>
+<code>/ipv6/</code> is updated (can be disabled)</p>
 </li><li>
-<p>Rebuild the initrd when any rules updated (optional)</p>
+<p>Rebuild the initrd when any rules updated (can be disabled)</p>
 </li><li>
 <p>Supports resource purging for unmanaged rules</p>
 </li><li>
@@ -145,9 +138,9 @@ yet they are being explicitly set</p>
 
 <p>In this case: * <code>net.ipv4.conf.all.accept_source_route</code> is the
 setting being managed * There is some form of non-default setting in place
-(<code>ensure=&gt;present</code>) * The settting is defined in
+(<code>ensure=&gt;present</code>) * The setting is defined in
 <code>/etc/sysctl.d/80-puppet-net.ipv4.conf.all.accept_source_route.conf</code>
-and because this file starts <code>80-puppet-</code> the module
+and because this file  starts <code>80-puppet-</code> the module
 <em>owns</em> the setting * <code>defined_in</code> lists <em>all</em>
 <code>.conf</code> file defining the setting (see sysctl precedence) *
 <code>value</code> represents the active value on the system, obtained from
@@ -164,9 +157,9 @@ saved in <code>.conf</code> files (see sysctl precedence)</p>
 </code></pre>
 
 <p>The module also manages changes made in files created by the user which
-will have names that don&#39;t match the 80-puppet- naming convention. When
-the module is commanded to take ownership of such settings, the existing
-file will be renamed rather then deleted, eg:</p>
+will have names that don&#39;t match the <code>80-puppet-</code> naming
+convention. When the module is commanded to take ownership of such
+settings, the existing file will be renamed rather then deleted, eg:</p>
 
 <pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv4.igmp_qrv=2&quot;: }
 </code></pre>
@@ -197,7 +190,9 @@ accordance with the above list.</p>
 the <code>defined_in</code> property. If asked to manage a setting that is
 already defined and not managed by the module Puppet will disable all
 existing <code>.conf</code> files containing the offending definition by
-appending <code>.nouse</code> to the filename.</p>
+appending <code>.nouse</code> to the filename and will then create a new
+file obeying the <code>80-puppet-</code> naming convention if
+<code>ensure=&gt;present</code>.</p>
 
 <h2 id="label-Value+handling">Value handling</h2>
 
