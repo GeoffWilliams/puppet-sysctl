@@ -41,15 +41,16 @@ Puppet::Type.newtype(:sysctl) do
     defaultto(true)
   end
 
-  newparam(:rebuild_initrd) do
-    desc "rebuild initrd after chaning rules"
-    defaultto(true)
-  end
+  # Disabled due to https://github.com/GeoffWilliams/puppet-sysctl/issues/1
+  # newparam(:rebuild_initrd) do
+  #   desc "rebuild initrd after chaning rules"
+  #   defaultto(true)
+  # end
 
-  newparam(:rebuild_initrd_cmd) do
-    desc "Command to run to rebuild initrd (default is autodetect)"
-    defaultto("dracut -v -f")
-  end
+  # newparam(:rebuild_initrd_cmd) do
+  #   desc "Command to run to rebuild initrd (default is autodetect)"
+  #   defaultto("dracut -v -f")
+  # end
 
   newparam(:name) do
     desc "The name of the kernel tuning parameter to set"

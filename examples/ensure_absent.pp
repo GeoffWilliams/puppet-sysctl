@@ -1,4 +1,5 @@
 #@PDQTest
+include sysctl::initrd
 
 # remove setting that exists
 sysctl { "net.ipv6.conf.default.disable_ipv6=1":

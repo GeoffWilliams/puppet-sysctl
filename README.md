@@ -109,10 +109,12 @@ Puppet detects when `value != value_saved` and will sync the resource on detecti
 
 
 ## Usage
+You must `include sysctl::initrd` to gain support for rebuilding the initrd after all rules are set
 
 ### Simple (long form)
 
 ```puppet
+include sysctl::initrd
 sysctl { "net.ipv4.conf.all.accept_source_route":
   ensure => present,
   value  => 0,
@@ -127,6 +129,7 @@ sysctl { "net.ipv4.conf.all.accept_source_route":
 ### Simple (short form)
 
 ```puppet
+include sysctl::initrd
 sysctl { "net.ipv4.conf.all.accept_source_route=0":
   ensure => present,
 }
@@ -142,6 +145,7 @@ resources { "sysctl":
   purge => true,
 }
 
+include sysctl::initrd
 sysctl { "net.ipv4.conf.all.accept_source_route":
   value => 0,
 }
@@ -158,6 +162,7 @@ Puppet will purge all unmanaged settings from all scanned file patterns (see sys
 ### Stop managing a setting
 
 ```puppet
+include sysctl::initrd
 sysctl { "net.ipv4.conf.all.accept_source_route":
   ensure => absent,
 }
@@ -169,6 +174,7 @@ sysctl { "net.ipv4.conf.all.accept_source_route":
 
 ### Don't flush IPv4 on rule change (per resource)
 ```puppet
+include sysctl::initrd
 sysctl { "net.ipv4.conf.all.accept_source_route=1":
   autoflush_ipv4 => false,
 }
@@ -177,6 +183,7 @@ sysctl { "net.ipv4.conf.all.accept_source_route=1":
 
 ### Don't flush IPv6 on rule change (per resource)
 ```puppet
+include sysctl::initrd
 sysctl { "net.ipv6.conf.default.disable_ipv6=1":
   autoflush_ipv6 => false,
 }
@@ -185,19 +192,17 @@ sysctl { "net.ipv6.conf.default.disable_ipv6=1":
 
 ### Don't rebuild initrd on rule change (per resource)
 ```puppet
-sysctl { "net.ipv6.conf.default.disable_ipv6=1":
-  rebuild_initrd => false,
-}
+# include sysctl::initrd <--- comment or remove
+sysctl { "net.ipv6.conf.default.disable_ipv6=1": }
 ```
 * To avoid rebuilding initrd with `dracut` for _this_ resource, set `rebuild_initrd` false 
 
 ### Use an alternate command to rebuild initrd
 ```puppet
-sysctl { "net.ipv6.conf.default.disable_ipv6=1":
-  rebuild_initrd_cmd => "/bin/echo custom > /tmp/testcase/initrd_cmd",
+class { "sysctl::initrd":
+  rebuild_initd_cmd => "/bin/echo custom > /tmp/testcase/initrd_cmd"
 }
 ```
-* Run any command you like to rebuild the initrd for _this_ resource. This should allow multi-OS support
 
 
 ## Reference

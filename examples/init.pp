@@ -1,4 +1,5 @@
 #@PDQTest
+include sysctl::initrd
 
 # long form
 sysctl { "net.ipv4.conf.all.accept_source_route":

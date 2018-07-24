@@ -41,13 +41,14 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
     "#{name}=#{value}"
   end
 
-  def rebuild_initrd()
-    # https://access.redhat.com/solutions/2798411
-    if @resource[:rebuild_initrd]
-      Puppet.notice("Rebuilding initrd - this may take some time")
-      execute(@resource[:rebuild_initrd_cmd])
-    end
-  end
+  # Disabled due to https://github.com/GeoffWilliams/puppet-sysctl/issues/1
+  # def rebuild_initrd()
+  #   # https://access.redhat.com/solutions/2798411
+  #   if @resource[:rebuild_initrd]
+  #     Puppet.notice("Rebuilding initrd - this may take some time")
+  #     execute(@resource[:rebuild_initrd_cmd])
+  #   end
+  # end
 
   def remove_definitions(skip_puppet_rules=true)
     @property_hash[:defined_in] and @property_hash[:defined_in].reject { |f|
@@ -87,7 +88,8 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
       execute([command(:cmd), "-w", "net.ipv6.route.flush=1"])
     end
 
-    rebuild_initrd
+    # Disabled due to https://github.com/GeoffWilliams/puppet-sysctl/issues/1
+    #rebuild_initrd
   end
 
   def destroy()
@@ -96,7 +98,8 @@ Puppet::Type.type(:sysctl).provide(:sysctl, :parent => Puppet::Provider) do
     # even though we may have touched ipv4/6 rules, there is no point flushing because
     # the default value to flush is unknowable - reboot!
 
-    rebuild_initrd
+    # Disabled due to https://github.com/GeoffWilliams/puppet-sysctl/issues/1
+    #rebuild_initrd
   end
 
   

@@ -1,6 +1,6 @@
 {
   "name": "geoffwilliams-sysctl",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "author": "geoffwilliams",
   "summary": "Manage sysctl kernel tuning with Puppet",
   "license": "Apache-2.0",

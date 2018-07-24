@@ -1,4 +1,6 @@
 #@PDQTest
+include sysctl::initrd
+
 resources { "sysctl":
   purge => true,
 }

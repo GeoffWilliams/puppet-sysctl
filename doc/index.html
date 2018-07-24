@@ -28,7 +28,7 @@
   </head>
   <body>
     <div class="nav_wrap">
-      <iframe id="nav" src="puppet_type_list.html?1"></iframe>
+      <iframe id="nav" src="puppet_class_list.html?1"></iframe>
       <div id="resizer"></div>
     </div>
 
@@ -43,8 +43,8 @@
 
         <div id="search">
   
-    <a class="full_list_link" id="puppet_type_list_link"
-        href="puppet_type_list.html">
+    <a class="full_list_link" id="puppet_class_list_link"
+        href="puppet_class_list.html">
 
         <svg width="24" height="24">
           <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
@@ -205,9 +205,13 @@ resource on detection.</p>
 
 <h2 id="label-Usage">Usage</h2>
 
+<p>You must <code>include sysctl::initrd</code> to gain support for rebuilding
+the initrd after all rules are set</p>
+
 <h3 id="label-Simple+-28long+form-29">Simple (long form)</h3>
 
-<pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv4.conf.all.accept_source_route&quot;:
+<pre class="code ruby"><code class="ruby">include sysctl::initrd
+sysctl { &quot;net.ipv4.conf.all.accept_source_route&quot;:
   ensure =&gt; present,
   value  =&gt; 0,
 }
@@ -226,7 +230,8 @@ on boot</p>
 
 <h3 id="label-Simple+-28short+form-29">Simple (short form)</h3>
 
-<pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv4.conf.all.accept_source_route=0&quot;:
+<pre class="code ruby"><code class="ruby">include sysctl::initrd
+sysctl { &quot;net.ipv4.conf.all.accept_source_route=0&quot;:
   ensure =&gt; present,
 }
 </code></pre>
@@ -243,6 +248,7 @@ on boot</p>
   purge =&gt; true,
 }
 
+include sysctl::initrd
 sysctl { &quot;net.ipv4.conf.all.accept_source_route&quot;:
   value =&gt; 0,
 }
@@ -258,7 +264,8 @@ exist if this technique is used</p>
 
 <h3 id="label-Stop+managing+a+setting">Stop managing a setting</h3>
 
-<pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv4.conf.all.accept_source_route&quot;:
+<pre class="code ruby"><code class="ruby">include sysctl::initrd
+sysctl { &quot;net.ipv4.conf.all.accept_source_route&quot;:
   ensure =&gt; absent,
 }
 </code></pre>
@@ -272,7 +279,8 @@ exist if this technique is used</p>
 
 <h3 id="label-Don-27t+flush+IPv4+on+rule+change+-28per+resource-29">Don&#39;t flush IPv4 on rule change (per resource)</h3>
 
-<pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv4.conf.all.accept_source_route=1&quot;:
+<pre class="code ruby"><code class="ruby">include sysctl::initrd
+sysctl { &quot;net.ipv4.conf.all.accept_source_route=1&quot;:
   autoflush_ipv4 =&gt; false,
 }
 </code></pre>
@@ -283,7 +291,8 @@ exist if this technique is used</p>
 
 <h3 id="label-Don-27t+flush+IPv6+on+rule+change+-28per+resource-29">Don&#39;t flush IPv6 on rule change (per resource)</h3>
 
-<pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv6.conf.default.disable_ipv6=1&quot;:
+<pre class="code ruby"><code class="ruby">include sysctl::initrd
+sysctl { &quot;net.ipv6.conf.default.disable_ipv6=1&quot;:
   autoflush_ipv6 =&gt; false,
 }
 </code></pre>
@@ -294,9 +303,8 @@ exist if this technique is used</p>
 
 <h3 id="label-Don-27t+rebuild+initrd+on+rule+change+-28per+resource-29">Don&#39;t rebuild initrd on rule change (per resource)</h3>
 
-<pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv6.conf.default.disable_ipv6=1&quot;:
-  rebuild_initrd =&gt; false,
-}
+<pre class="code ruby"><code class="ruby"># include sysctl::initrd &lt;--- comment or remove
+sysctl { &quot;net.ipv6.conf.default.disable_ipv6=1&quot;: }
 </code></pre>
 <ul><li>
 <p>To avoid rebuilding initrd with <code>dracut</code> for <em>this</em>
@@ -305,14 +313,10 @@ resource, set <code>rebuild_initrd</code> false</p>
 
 <h3 id="label-Use+an+alternate+command+to+rebuild+initrd">Use an alternate command to rebuild initrd</h3>
 
-<pre class="code ruby"><code class="ruby">sysctl { &quot;net.ipv6.conf.default.disable_ipv6=1&quot;:
-  rebuild_initrd_cmd =&gt; &quot;/bin/echo custom &gt; /tmp/testcase/initrd_cmd&quot;,
+<pre class="code ruby"><code class="ruby">class { &quot;sysctl::initrd&quot;:
+  rebuild_initd_cmd =&gt; &quot;/bin/echo custom &gt; /tmp/testcase/initrd_cmd&quot;
 }
 </code></pre>
-<ul><li>
-<p>Run any command you like to rebuild the initrd for <em>this</em> resource.
-This should allow multi-OS support</p>
-</li></ul>
 
 <h2 id="label-Reference">Reference</h2>
 
