@@ -1,4 +1,4 @@
-# Sysctl::initrd
+# @summary Rebuild initrd after all sysctl rules applied
 #
 # Puppet types an providers are currently unable to batch operations. Easiest way to make
 # sure the initrd is only updated once is therefore to put something in the catalogue and
