@@ -203,16 +203,6 @@ class { "sysctl::initrd":
 }
 ```
 
-
-## Reference
-[generated documentation](https://rawgit.com/GeoffWilliams/puppet-sysctl/master/doc/index.html).
-
-Reference documentation is generated directly from source code using [puppet-strings](https://github.com/puppetlabs/puppet-strings).  You may regenerate the documentation by running:
-
-```shell
-bundle exec puppet strings
-```
-
 ## Limitations
 *   Tested on RHEL/CentOS 7 so far. You might be able to support other systems by passing the appropriate command to 
     rebuild initrd on your platform
