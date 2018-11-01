@@ -20,7 +20,6 @@ Puppet::Type.newtype(:sysctl) do
 
   newproperty(:value) do
     desc "The value the kernel tuning parameter to"
-    isrequired
   end
 
   newproperty(:defined_in) do
@@ -69,5 +68,10 @@ Puppet::Type.newtype(:sysctl) do
         ]
     ]
   end
+
+  validate do
+    self.fail "parameter `value` is required" unless value(:value)
+  end
+
 
 end
