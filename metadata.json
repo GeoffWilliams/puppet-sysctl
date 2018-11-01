@@ -5,14 +5,17 @@
   "summary": "Manage sysctl kernel tuning with Puppet",
   "license": "Apache-2.0",
   "source": "https://github.com/GeoffWilliams/puppet-sysctl.git",
-  "project_page": null,
-  "issues_url": "https://api.github.com/repos/GeoffWilliams/puppet-sysctl/issues{/number}",
+  "project_page": "https://github.com/GeoffWilliams/puppet-sysctl",
+  "issues_url": "https://github.com/GeoffWilliams/puppet-sysctl/issues",
   "dependencies": [
     {
       "name": "puppetlabs-stdlib",
-      "version_requirement": ">= 1.0.0"
+      "version_requirement": "5.1.0"
     }
   ],
   "data_provider": null,
-  "project_url": "https://github.com/GeoffWilliams/puppet-sysctl.git"
+  "project_url": "https://github.com/GeoffWilliams/puppet-sysctl.git",
+  "pdk-version": "1.7.1",
+  "template-url": "file:///opt/puppetlabs/pdk/share/cache/pdk-templates.git",
+  "template-ref": "1.7.1-0-g810b982"
 }
