@@ -69,9 +69,4 @@ Puppet::Type.newtype(:sysctl) do
     ]
   end
 
-  validate do
-    self.fail "parameter `value` is required" unless value(:value)
-  end
-
-
 end
